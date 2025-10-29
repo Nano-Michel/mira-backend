@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import { Mira } from '@korva.io/mira';
+import { Mira } from '@korvaio/mira';
 import dotenv from 'dotenv';
 import { executeDirectQuery } from './directQuery';
 
