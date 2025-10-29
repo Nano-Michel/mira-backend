@@ -14,7 +14,7 @@ app.use(cors());
 app.use(express.json());
 
 // Initialisation du client Mira
-const mira = new Mira(process.env.MIRA_API_KEY || '***REMOVED***',
+const mira = new Mira(process.env.MIRA_API_KEY || '',
   process.env.MIRA_BASE_URL || 'https://mira-gtsn.onrender.com/api/v1');
 
 // Route de test
