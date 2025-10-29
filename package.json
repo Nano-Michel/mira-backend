@@ -10,7 +10,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "@korvaio/mira": "file:../mira/packages/mira",
+    "@korvaio/mira": "^1.0.0",
     "axios": "^1.13.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.1",
