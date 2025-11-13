@@ -61,9 +61,10 @@ app.post('/query', async (req, res) => {
 
     // Gestion du résultat
     if (result.isOk()) {
+      const response = result.value;
       return res.json({
         success: true,
-        data: result.value
+        ...response  // Spread toute la réponse (data, comment, metadata, meta)
       });
     } else {
       console.error('Mira error:', result.error);
@@ -121,10 +122,11 @@ app.post('/query-v1.1', async (req, res) => {
     console.log('Mira API response:', result.isOk() ? 'Success' : 'Error');
 
     if (result.isOk()) {
+      const response = result.value;
       return res.json({
         success: true,
-        data: result.value,
-        configuration: configuration
+        configuration: configuration,
+        ...response  // Spread toute la réponse (data, comment, metadata, meta)
       });
     } else {
       console.error('Mira error:', result.error);
