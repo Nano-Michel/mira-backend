@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import { Mira } from '@korva.io/mira';
+import { Mira } from '@korvaio/mira';
 import dotenv from 'dotenv';
 import { executeDirectQuery } from './directQuery';
 
@@ -27,7 +27,7 @@ app.get('/debug', (req, res) => {
   res.json({
     message: 'Mira Backend Debug Info',
     miraApiKey: process.env.MIRA_API_KEY ? '***' + process.env.MIRA_API_KEY.slice(-4) : 'NOT SET',
-    miraBaseUrl: 'https://mira-gtsn.onrender.com/api/v1',
+    miraBaseUrl: process.env.MIRA_BASE_URL || 'https://mira-gtsn.onrender.com/api/v1',
     backendPort: port
   });
 });
@@ -35,9 +35,9 @@ app.get('/debug', (req, res) => {
 // Route pour exécuter une requête
 app.post('/query', async (req, res) => {
   try {
-    const { dbType, connectionString, nlQuery, userId } = req.body;
+    const { dbType, connectionString, nlQuery, userId, configuration } = req.body;
 
-    console.log('Received query request:', { dbType, nlQuery, userId });
+    console.log('Received query request:', { dbType, nlQuery, userId, configuration });
 
     // Validation des entrées
     if (!dbType || !connectionString || !nlQuery || !userId) {
@@ -47,13 +47,14 @@ app.post('/query', async (req, res) => {
       });
     }
 
-    // Exécution de la requête via le package Mira
+    // Exécution de la requête via le package Mira avec nouvelles options
     console.log('Calling Mira API...');
     const result = await mira.query({
       dbType,
       connectionString,
       nlQuery,
-      userId
+      userId,
+      configuration: configuration || {}
     });
 
     console.log('Mira API response:', result.isOk() ? 'Success' : 'Error');
@@ -74,6 +75,67 @@ app.post('/query', async (req, res) => {
     }
   } catch (error) {
     console.error('Error in /query:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Route de test pour les nouvelles fonctionnalités v1.1.0
+app.post('/query-v1.1', async (req, res) => {
+  try {
+    const { dbType, connectionString, nlQuery, userId, outputKeyFormat, maxResults, timeout } = req.body;
+
+    console.log('Received v1.1 query request:', { 
+      dbType, nlQuery, userId, outputKeyFormat, maxResults, timeout 
+    });
+
+    // Validation des entrées
+    if (!dbType || !connectionString || !nlQuery || !userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required parameters: dbType, connectionString, nlQuery, userId'
+      });
+    }
+
+    // Configuration avec les nouvelles options
+    const configuration = {
+      ...(outputKeyFormat && { outputKeyFormat }),
+      ...(maxResults && { maxResults: parseInt(maxResults) }),
+      ...(timeout && { timeout: parseInt(timeout) })
+    };
+
+    console.log('Using configuration:', configuration);
+
+    // Exécution de la requête avec les nouvelles options
+    const result = await mira.query({
+      dbType,
+      connectionString,
+      nlQuery,
+      userId,
+      configuration
+    });
+
+    console.log('Mira API response:', result.isOk() ? 'Success' : 'Error');
+
+    if (result.isOk()) {
+      return res.json({
+        success: true,
+        data: result.value,
+        configuration: configuration
+      });
+    } else {
+      console.error('Mira error:', result.error);
+      return res.status(400).json({
+        success: false,
+        error: result.error.message,
+        code: result.error.code
+      });
+    }
+  } catch (error) {
+    console.error('Error in /query-v1.1:', error);
     return res.status(500).json({
       success: false,
       error: 'Internal server error',
@@ -140,6 +202,7 @@ app.listen(port, () => {
   console.log(`Available endpoints:`);
   console.log(`  GET  /         - Health check`);
   console.log(`  GET  /debug    - Debug info`);
-  console.log(`  POST /query    - Query via Mira API (requires API running on port 4000)`);
+  console.log(`  POST /query    - Query via Mira API (supports v1.1.0 configuration)`);
+  console.log(`  POST /query-v1.1 - Test new v1.1.0 features (outputKeyFormat, maxResults, timeout)`);
   console.log(`  POST /query-direct - Direct query (bypasses Mira API)`);
 });
